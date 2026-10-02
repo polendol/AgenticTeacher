@@ -1,20 +1,9 @@
-# classifier training and inference
+langgraph>=0.4
+langchain-ollama>=0.3.4
+pydantic>=2.0
 torch
-transformers>=4.48
-peft
-accelerate
-datasets
-huggingface_hub
-scikit-learn
-pandas
-numpy
+transformers
 sentencepiece
-protobuf
-
-# transcript
+numpy
+spacy>=3.0
 youtube-transcript-api>=1.0
-
-# agent
-langgraph
-langchain-core
-langchain-ollama
