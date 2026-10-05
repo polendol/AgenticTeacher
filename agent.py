@@ -1,30 +1,7 @@
 """
 Exercise-generation agent (qwen3:4b via Ollama, orchestrated with LangGraph).
-
-Usage from main.py, once the transcript is cleaned, the vocabulary dictionary
-is built and the CEFR level is known:
-
-    from agent import ExerciseAgent
-
-    agent = ExerciseAgent()
-    result = agent.run(transcript=clean_text, vocab=vocab, level=level)
-
-The agent talks to the teacher, shows each set of exercises as soon as it is
-ready, and keeps asking whether they want more. It only ends when the teacher
-says they are done.
-
-Flow (fixed graph, not a free-roaming ReAct loop):
-
-    ask_teacher (pause + LLM parses reply) --(wants exercises)--> generate_exercises (LLM)
-        ^                                  \\--(teacher is done)--> END
-        |                                                              |
-        |                                                              v
-        +------ deliver <--(ok)-- validate <--(issues and attempts left: back to generate)
-
-Setup:
-    pip install langgraph langchain-ollama pydantic
-    ollama pull qwen3:4b
 """
+
 import uuid
 from typing import Callable, Literal, Optional, TypedDict
 
@@ -34,14 +11,13 @@ from langgraph.graph import END, START, StateGraph
 from langgraph.types import Command, interrupt
 from pydantic import BaseModel, Field
 
-# Replies that end the session without needing the LLM to interpret them.
+# Replies that end the session
 STOP_PHRASES = {
     "no", "nope", "no thanks", "no thank you", "nothing", "nothing else", "no more",
     "done", "i'm done", "im done", "that's all", "thats all", "that's it", "thats it",
     "finish", "finished", "stop", "quit", "exit", "bye", "goodbye", "all good", "i'm good",
 }
 
-# ------------------------- Schemas and state -------------------------
 ExerciseType = Literal["multiple_choice", "gap_fill", "true_false", "short_answer"]
 
 
@@ -86,18 +62,16 @@ class State(TypedDict, total=False):
     past_questions: list  # used to avoid repeating questions in later sets
 
 
-# ------------------------- Default teacher interaction -------------------------
+# Interaction
 def console_ask(question: str) -> str:
-    """Default way to ask the teacher something. Pass your own function to ExerciseAgent for a GUI/web UI."""
     return input("\n" + question + "\n> ")
 
 
 def console_show(text: str) -> None:
-    """Default way to show a finished set of exercises to the teacher."""
     print("\n" + text)
 
 
-# ------------------------- The agent -------------------------
+# Agent
 class ExerciseAgent:
     def __init__(
         self,
@@ -121,17 +95,9 @@ class ExerciseAgent:
         self.max_attempts = max_attempts
         self.max_prompt_chars = max_prompt_chars
         self.max_vocab_per_pos = max_vocab_per_pos
-        # reasoning=False turns off qwen3's thinking mode (needs a recent langchain-ollama).
         self.llm = ChatOllama(model=model, temperature=0, num_ctx=num_ctx, reasoning=False)
         self.gen_llm = ChatOllama(model=model, temperature=0.3, num_ctx=num_ctx, reasoning=False)
         self.graph = self._build_graph()
-
-    # ---- public API ----
-    # Non-blocking API (used by web UIs such as Gradio):
-    #     thread_id, step = agent.start(transcript, vocab, level)
-    #     step = agent.send(thread_id, teacher_reply)
-    # `step` is {"show": markdown or None, "question": str or None, "done": bool}.
-    # run() below is a blocking wrapper around the same methods for terminal use.
 
     def _config(self, thread_id: str) -> dict:
         return {"configurable": {"thread_id": thread_id}, "recursion_limit": 100}
@@ -144,8 +110,8 @@ class ExerciseAgent:
             return {"show": payload.get("show"), "question": payload["question"], "done": False}
         return {"show": None, "question": None, "done": True}
 
+    #Begin a session
     def start(self, transcript: str, vocab: dict, level: str) -> tuple[str, dict]:
-        """Begin a session. Returns (thread_id, step) where step holds the first question."""
         thread_id = str(uuid.uuid4())
         result = self.graph.invoke(
             {"clean_text": transcript, "vocab": self._trim_vocab(vocab), "level": level, "attempts": 0},
@@ -154,12 +120,10 @@ class ExerciseAgent:
         return thread_id, self._step(result)
 
     def send(self, thread_id: str, reply: str) -> dict:
-        """Send the teacher's reply. Returns the next step (latest exercises + next question, or done)."""
         result = self.graph.invoke(Command(resume=reply), self._config(thread_id))
         return self._step(result)
 
     def get_result(self, thread_id: str) -> dict:
-        """Everything delivered so far in this session."""
         values = self.graph.get_state(self._config(thread_id)).values
         batches = values.get("batches", [])
         return {
@@ -169,12 +133,6 @@ class ExerciseAgent:
         }
 
     def run(self, transcript: str, vocab: dict, level: str) -> dict:
-        """
-        Blocking conversation in the terminal (or via ask_fn/display_fn). Returns:
-            markdown:  every set of exercises delivered, joined together
-            batches:   list with the markdown of each set
-            exercises: list of every exercise (dicts with type, question, options, answer)
-        """
         thread_id, step = self.start(transcript, vocab, level)
         while not step["done"]:
             if step["show"]:
@@ -182,13 +140,13 @@ class ExerciseAgent:
             step = self.send(thread_id, self.ask_fn(step["question"]))
         return self.get_result(thread_id)
 
-    # ---- helpers ----
+
     def _trim_vocab(self, vocab: dict) -> dict:
         """Keep the prompt small: at most N words per part of speech."""
         n = self.max_vocab_per_pos
         trimmed = {}
         for pos, words in vocab.items():
-            if isinstance(words, dict):  # word -> count
+            if isinstance(words, dict):  # word to count
                 words = [w for w, _ in sorted(words.items(), key=lambda kv: -kv[1])]
             trimmed[pos] = list(words)[:n]
         return trimmed
@@ -198,7 +156,7 @@ class ExerciseAgent:
         text = reply.strip().lower().replace("\u2019", "'").strip(" .!?,")
         return text in STOP_PHRASES
 
-    # ---- Human-in-the-loop + LLM: parse the teacher's reply ----
+    # Human-in-the-loop + LLM: parse the teacher's reply
     def ask_teacher(self, state: State):
         first_round = not state.get("batches")
         question = (
@@ -206,7 +164,7 @@ class ExerciseAgent:
             if first_round
             else "Would you like any other exercises? Describe them, or say 'done' to finish."
         )
-        # The node restarts from the top on resume, so the interrupt must come first.
+
         reply = interrupt({"question": question, "show": state.get("final")})
 
         if self._is_stop(reply):
@@ -232,34 +190,47 @@ class ExerciseAgent:
     def route_after_ask(self, state: State) -> str:
         return "finish" if state["spec"]["finished"] else "generate_exercises"
 
-    # ---- LLM: generate ----
+    # Generate LLM
+    TYPE_RULES = {
+        "multiple_choice": '3-4 options; "answer" must be exactly one of the options.',
+        "gap_fill": 'the question is a sentence from the transcript with the target word replaced by ____; "answer" is that word.',
+        "true_false": '"answer" is exactly "True" or "False". Mix true and false statements.',
+        "short_answer": 'a comprehension question; "answer" is a brief model answer.',
+    }
+
     def generate_exercises(self, state: State):
         spec = state["spec"]
         level = spec.get("level") or state["level"]
-        prompt = f"""Create language-learning exercises based ONLY on the transcript below.
-CEFR level of the learner: {level}. Use vocabulary and sentence complexity suited to that level.
+        past = list(state.get("past_questions", []))
+        structured = self.gen_llm.with_structured_output(ExerciseSet, method="json_schema")
+        all_new = []
 
-Requirements:
-- Create exactly {spec['per_type']} exercises for EACH of these types: {', '.join(spec['types'])}.
-- multiple_choice: 3-4 options; "answer" must be exactly one of the options.
-- gap_fill: the question is a sentence from the transcript with the target word replaced by ____; "answer" is that word.
-- true_false: "answer" is exactly "True" or "False".
-- short_answer: a comprehension question; "answer" is a brief model answer.
-- Teacher's focus: {spec['focus'] or 'none'}.
-- Candidate vocabulary from the transcript: {state['vocab']}
-"""
-        past = state.get("past_questions", [])
-        if past:
-            prompt += "\nDo NOT repeat or closely paraphrase these earlier questions:\n- " + "\n- ".join(past[-40:]) + "\n"
-        if state.get("issues"):
-            prompt += "\nYour previous attempt had these problems. Fix them:\n- " + "\n- ".join(state["issues"]) + "\n"
-        prompt += f"\nTranscript:\n{state['clean_text'][:self.max_prompt_chars]}"
+        for t in spec["types"]:
+            prompt = f"""Create language-learning exercises based ONLY on the transcript below.
+    CEFR level of the learner: {level}. Use vocabulary and sentence complexity suited to that level.
 
-        result = self.gen_llm.with_structured_output(ExerciseSet, method="json_schema").invoke(prompt)
-        return {"exercises": [e.model_dump() for e in result.exercises],
-                "attempts": state.get("attempts", 0) + 1}
+    Create exactly {spec['per_type']} exercises of type "{t}" and nothing else.
+    Rule for {t}: {self.TYPE_RULES[t]}
+    Teacher's focus: {spec['focus'] or 'none'}.
+    Candidate vocabulary from the transcript: {state['vocab']}
+    """
+            if past or all_new:
+                prev = past[-40:] + [e["question"] for e in all_new]
+                prompt += "\nDo NOT repeat or closely paraphrase these questions:\n- " + "\n- ".join(prev) + "\n"
+            relevant = [i for i in state.get("issues", []) if f"({t})" in i or t in i]
+            if relevant:
+                prompt += "\nYour previous attempt had these problems. Fix them:\n- " + "\n- ".join(relevant) + "\n"
+            prompt += f"\nTranscript:\n{state['clean_text'][:self.max_prompt_chars]}"
 
-    # ---- Plain-Python validation ----
+            result = structured.invoke(prompt)
+            batch = [e.model_dump() for e in result.exercises][:spec["per_type"]]
+            for e in batch:
+                e["type"] = t  # force the type, don't trust the model
+            all_new += batch
+
+        return {"exercises": all_new, "attempts": state.get("attempts", 0) + 1}
+
+    # Python validation
     def validate(self, state: State):
         spec, exercises = state["spec"], state["exercises"]
         text = state["clean_text"].lower()
@@ -300,7 +271,7 @@ Requirements:
             return "generate_exercises"
         return "deliver"
 
-    # ---- Deliver ----
+    # Delivery
     def deliver(self, state: State):
         spec = state["spec"]
         level = spec.get("level") or state["level"]
@@ -339,7 +310,7 @@ Requirements:
             "past_questions": state.get("past_questions", []) + [e["question"] for e in state["exercises"]],
         }
 
-    # ---- Graph ----
+    # Graph
     def _build_graph(self):
         g = StateGraph(State)
         g.add_node("ask_teacher", self.ask_teacher)

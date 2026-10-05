@@ -4,14 +4,14 @@ This program was made to help teachers plan their classes with audiovisual input
 It works in two stages:
 
 Stage 1: lexical analysis
- Teachers introduces the url of the YT video they want to use in class. The program returns a dictionary of words per lexical category (verb, noun, etc.), as well as the CEFR level of the video. The CEFR classifier uses a fine-tuned (PEFT) DeBERTa model (see CEFRclassifier training and Model)
+Teachers introduces the url of the YT video they want to use in class. The program returns a dictionary of words per lexical category (verb, noun, etc.), as well as the CEFR level of the video. The CEFR classifier uses a fine-tuned (PEFT) DeBERTa model (see CEFRclassifier training and Model)
 
 Stage 2: Agent
 In this stage, the teacher interacts with an agent to create exercises suitable for the video and the CEFR level. The teacher can choose among 4 types of exercises and can also indicate the length and the focus of the exercise. 
 
 The agent shuts the program only when the teacher explicitly says so. 
 
-The details of the model, the training, and the agentic flow, as well as how the project was dockerised, are presented below. 
+The details about the model, the training, and the agentic flow are listed below. 
 
 ## CEFR classifier training
 
@@ -44,8 +44,8 @@ If a model has already been trained, training is skipped and the saved one is re
 Two candidate encoders were fine-tuned and evaluated on the same held-out test set. DeBERTa was selected as the production model.
 
 Candidates compared:
-1. DeBERTa (selected)	DeBERTa encoder, fine-tuned
-2. ModernBERT	ModernBERT encoder, fine-tuned
+1. DeBERTa encoder, fine-tuned
+2. ModernBERT encoder, fine-tuned
 
 Raw outputs:
 DeBERTa:
@@ -89,14 +89,3 @@ Limitations:
 4. Exercise types are fixed to the four above. Adding one means updating ExerciseType, the generation prompt and validate.
 
 
-## Docker
-
-## Requirements
-
-Docker with Docker Compose (included in Docker Desktop)
-About 10 GB of free disk space (images plus the qwen3:4b download of about 2.5 GB)
-At least 8 GB of RAM
-Optional but strongly recommended: an NVIDIA GPU (see GPU support)
-
-## How it works:
-1. Three containers are started by one command (`docker compose up --build`)
