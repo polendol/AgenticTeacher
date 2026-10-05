@@ -75,6 +75,9 @@ Reason:
 3. Faster inference in our setup (~1.5x). DeBERTa processed 12.7 samples/s versus 8.5 for ModernBERT on the test set, reducing serving cost and latency.
 4. Comparable on the remaining metrics. ModernBERT is ahead on exact accuracy (+0.8 pts), macro F1 (+1.3 pts) and adjacent accuracy (+0.2 pts), but these margins are small and do not outweigh the QWK advantage for an ordinal task.
 
+The trained model is hosted on Hugging Face:
+   https://huggingface.co/Polender/DeBERTa-CEFR-classifier 
+
 ## Agentic flow
 The agent runs entirely locally with qwen3:4b through Ollama and is orchestrated with LangGraph. It talks to the teacher, asks what kind of exercises they want, and generates them at the transcript's CEFR level.
 

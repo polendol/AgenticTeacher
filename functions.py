@@ -7,7 +7,7 @@ import spacy
 from collections import defaultdict
 
 CEFR_LEVELS = ["A1", "A2", "B1", "B2", "C1", "C2"]
-MODEL_PATH = "models/deberta-trained-pefted-cefr"  # folder saved by the training script
+MODEL_PATH = "Polender/DeBERTa-CEFR-classifier"  # folder saved by the training script
 MAX_LEN = 384  # same as training
 MIN_WORDS = 15  # same "tiny leftover" threshold as training
 BATCH_SIZE = 16

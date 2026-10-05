@@ -1,2 +1,3 @@
 models
 training.md
+*.safetensors
