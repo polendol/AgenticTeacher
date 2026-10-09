@@ -1,6 +1,6 @@
 ## Teaching Assistant 
 
-This program was made to help teachers plan their classes with audiovisual input. It uses a ttyd interface terminal to interact with teachers. 
+This program was made to help teachers plan their classes with audiovisual input. 
 It works in two stages:
 
 Stage 1: lexical analysis
@@ -19,8 +19,11 @@ Trains a small transformer to estimate the CEFR level (A1 to C2) of an English t
 
 Task: ordinal regression (A1=0 ... C2=5, one output, rounded to a level)
 Method: LoRA (PEFT) fine-tuning, merged into the base model after training
-Data: English datasets from the UniversalCEFR collection
-Models: any Hugging Face encoder you name, e.g. microsoft/deberta-v3-base, answerdotai/ModernBERT-base
+Data: English subsets of [UniversalCEFR](https://huggingface.co/UniversalCEFR)
+(Imperial et al., EMNLP 2025), each under its own CC-BY-NC or CC-BY-NC-SA license.
+Full list and licenses in [ThirdPartyNotices.md](ThirdPartyNotices.md).
+Please cite UniversalCEFR and the original dataset papers if you use these data.
+Models: any Hugging Face encoder you name, e.g. microsoft/deberta-v3-base (https://huggingface.co/microsoft/deberta-v3-base), answerdotai/ModernBERT-base (https://huggingface.co/answerdotai/ModernBERT-base)
 
 ## How it works
 1. Load data. Downloads the English UniversalCEFR datasets and maps each label (B1, b1+, B1/B2...) to a number 0 to 5. Unusable labels are dropped.
@@ -44,8 +47,8 @@ If a model has already been trained, training is skipped and the saved one is re
 Two candidate encoders were fine-tuned and evaluated on the same held-out test set. DeBERTa was selected as the production model.
 
 Candidates compared:
-1. DeBERTa encoder, fine-tuned
-2. ModernBERT encoder, fine-tuned
+1. DeBERTa encoder, fine-tuned (https://huggingface.co/microsoft/deberta-v3-base)
+2. ModernBERT encoder, fine-tuned (https://huggingface.co/answerdotai/ModernBERT-base)
 
 Raw outputs:
 DeBERTa:
@@ -78,6 +81,8 @@ Reason:
 The trained model is hosted on Hugging Face:
    https://huggingface.co/Polender/DeBERTa-CEFR-classifier 
 
+ **Note:** the models are hosted on the Hugging Face Hub under a non-commercial license (CC-BY-NC-SA-4.0). The code in this repo is MIT.
+
 ## Agentic flow
 The agent runs entirely locally with qwen3:4b through Ollama and is orchestrated with LangGraph. It talks to the teacher, asks what kind of exercises they want, and generates them at the transcript's CEFR level.
 
@@ -90,5 +95,34 @@ Limitations:
 2. Factual quality isn't checked. Validation checks structure and consistency, not whether a multiple-choice answer is truly correct or a true/false item is accurate. A teacher should review the output.
 3. Level matching is prompt-based. The model is instructed to write at the CEFR level, but nothing verifies the exercises themselves match it.
 4. Exercise types are fixed to the four above. Adding one means updating ExerciseType, the generation prompt and validate.
+
+
+## Setup
+1. Install Python 3.10+ and the dependencies: `pip install -r requirements.txt`
+2. spaCy model (if not already in requirements): `python -m spacy download en_core_web_sm`
+3. Install [Ollama](https://ollama.com) and pull the model: `ollama pull qwen3:4b`
+4. Run: `python main.py`   (replace with your real entry point)
+
+
+## License
+
+The code in this repository is released under the [MIT License](LICENSE).
+
+The CEFR classifier models on Hugging Face are **not** MIT. They are released
+under CC-BY-NC-SA-4.0 (non-commercial) because of their training data, so this
+project as a whole is intended for non-commercial use. Third-party components
+keep their own licenses, listed in [THIRD_PARTY_NOTICES.md](ThirdPartyNotices.md).
+
+## Responsible use
+
+This tool fetches public YouTube transcripts for personal and educational use.
+It does not store or redistribute transcripts. Transcripts belong to their
+creators, and users are responsible for following YouTube's Terms of Service.
+Generated exercises are derived from the video's transcript and should not be
+republished.
+
+
+
+
 
 
