@@ -1,3 +1,191 @@
 models
 training.md
 *.safetensors
+
+# ============================================
+# Secrets & credentials (most important)
+# ============================================
+.env
+.env.*
+!.env.example
+*.env
+secrets/
+secrets.*
+credentials*.json
+*.pem
+*.key
+*.p12
+*.pfx
+id_rsa*
+.netrc
+.huggingface/
+.cache/huggingface/
+token.txt
+*_token*
+config.local.*
+*.local.yaml
+*.local.yml
+*.local.json
+
+# ============================================
+# Models, weights & training artifacts
+# ============================================
+models/
+checkpoints/
+checkpoint-*/
+adapters/
+lora/
+peft/
+outputs/
+output/
+runs/
+results/
+*.safetensors
+*.bin
+*.pt
+*.pth
+*.ckpt
+*.onnx
+*.gguf
+*.h5
+*.pkl
+*.pickle
+*.joblib
+optimizer.pt
+scheduler.pt
+rng_state*.pth
+trainer_state.json
+training_args.bin
+
+# ============================================
+# Experiment tracking & logs
+# ============================================
+wandb/
+mlruns/
+lightning_logs/
+tensorboard/
+logs/
+*.log
+*.out
+
+# ============================================
+# Data (datasets, transcripts, scraped content)
+# ============================================
+data/
+datasets/
+dataset/
+raw/
+processed/
+transcripts/
+*.csv
+*.tsv
+*.jsonl
+*.parquet
+*.arrow
+*.db
+*.sqlite
+*.sqlite3
+# Keep small sample files if you want them public:
+# !data/sample/
+
+# ============================================
+# Caches (HF, spaCy, LangChain, LangGraph)
+# ============================================
+.cache/
+hf_cache/
+huggingface/
+transformers_cache/
+.langgraph_api/
+.langgraph*/
+.langchain/
+chroma/
+chroma_db/
+faiss_index/
+vectorstore/
+*.faiss
+checkpoints.sqlite*
+
+# ============================================
+# spaCy downloaded models
+# ============================================
+en_core_web_*/
+*_core_*_sm/
+*_core_*_md/
+*_core_*_lg/
+*_core_*_trf/
+
+# ============================================
+# Python
+# ============================================
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+build/
+dist/
+develop-eggs/
+eggs/
+.eggs/
+*.egg-info/
+*.egg
+wheels/
+pip-wheel-metadata/
+.installed.cfg
+MANIFEST
+
+# Virtual environments
+venv/
+.venv/
+env/
+ENV/
+.conda/
+
+# Testing / tooling caches
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+.tox/
+.nox/
+.coverage
+.coverage.*
+htmlcov/
+.hypothesis/
+
+# ============================================
+# Jupyter
+# ============================================
+.ipynb_checkpoints/
+# Notebooks often contain outputs, paths, and tokens. Uncomment to ignore them entirely:
+# *.ipynb
+
+# ============================================
+# IDE / editor
+# ============================================
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+.history/
+*.code-workspace
+
+# ============================================
+# OS files
+# ============================================
+.DS_Store
+Thumbs.db
+desktop.ini
+ehthumbs.db
+
+# ============================================
+# Misc
+# ============================================
+tmp/
+temp/
+*.tmp
+*.bak
+*.orig
+scratch/
+notes/
+TODO.private.md
