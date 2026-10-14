@@ -4,7 +4,7 @@ import numpy as np
 import torch
 from transformers import AutoModelForSequenceClassification, AutoTokenizer
 import spacy
-from collections import defaultdict
+from collections import defaultdict, Counter
 
 CEFR_LEVELS = ["A1", "A2", "B1", "B2", "C1", "C2"]
 MODEL_PATH = "Polender/DeBERTa-CEFR-classifier"  # folder saved by the training script
@@ -31,11 +31,11 @@ def clean_transcript(transcript: str) -> str:
     return "".join(char if (char.isalnum() or char.isspace() or char in "!?") else " " for char in transcript)
 
 def words_dictionary(text: str) -> dict[str, list[str]]:
-    groups = defaultdict(set)
+    groups = defaultdict(Counter)
     for token in nlp(text):
         if token.is_alpha and not token.is_stop:
-            groups[token.pos_].add(token.lemma_.lower())
-    return {pos: sorted(words) for pos, words in groups.items()}
+            groups[token.pos_][token.lemma_.lower()] += 1
+    return {pos: [w for w, _ in c.most_common()] for pos, c in groups.items()}
 
 def _load_cefr_model(): #load the model only once, not everytime, and it is internal to this module
     if not _cefr_model:
