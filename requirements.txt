@@ -4,9 +4,12 @@ pydantic>=2.0
 torch
 transformers
 sentencepiece
+safetensors
+huggingface_hub
 numpy
 spacy>=3.8,<3.9
 en_core_web_sm @ https://github.com/explosion/spacy-models/releases/download/en_core_web_sm-3.8.0/en_core_web_sm-3.8.0-py3-none-any.whl
 youtube-transcript-api>=1.0
-safetensors
-huggingface_hub
+
+# Only to train the classifier (not needed to run the assistant):
+#   pip install peft datasets scikit-learn pandas accelerate
